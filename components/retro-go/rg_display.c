@@ -601,6 +601,7 @@ void rg_display_init(void)
         .changed = true,
     };
     lcd_init();
+    lcd_set_backlight(RG_DISPLAY_BACKLIGHT_MAX - config.backlight); //新增代码
     display_task_queue = rg_task_create("rg_display", &display_task, NULL, 4 * 1024, RG_TASK_PRIORITY_6, 1);
     if (config.border_file)
         load_border_file(config.border_file);
