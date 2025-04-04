@@ -412,7 +412,9 @@ void rg_display_set_backlight(display_backlight_t percent)
 {
     config.backlight = RG_MIN(RG_MAX(percent, RG_DISPLAY_BACKLIGHT_MIN), RG_DISPLAY_BACKLIGHT_MAX);
     rg_settings_set_number(NS_GLOBAL, SETTING_BACKLIGHT, config.backlight);
-    lcd_set_backlight(config.backlight);
+    //lcd_set_backlight(config.backlight);                              //retro-go原文件
+    lcd_set_backlight(RG_DISPLAY_BACKLIGHT_MAX-config.backlight);       //背光异常，比如增加背光，实际变暗，则启用在这条
+
 }
 
 display_backlight_t rg_display_get_backlight(void)
