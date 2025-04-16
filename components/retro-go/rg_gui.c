@@ -272,10 +272,10 @@ void rg_gui_copy_buffer(int left, int top, int width, int height, int stride, co
     }
 }
 
-static size_t get_glyph(uint32_t *output, const rg_font_t *font, int points, int c)
+static size_t get_glyph(uint32_t *output, const rg_font_t *font, int points, uint32_t c)
 {
     // Some glyphs are always zero width
-    if (!font || c == '\r' || c == '\n' || c < 8 || c > 254)
+    if (!font || c == '\r' || c == '\n' || c < 8)
         return 0;
 
     size_t glyph_width = 0;
@@ -304,8 +304,34 @@ static size_t get_glyph(uint32_t *output, const rg_font_t *font, int points, int
             }
         }
     }
-    else if (font->type == 1) // Proportional
+    else if (font->type == 2)
     {
+        if (output)
+        {
+            if (c >= font->chars)
+            {
+                for (int y = 0; y < font->height; y++)
+                    output[y] = 0;
+            }
+            else
+            {
+                uint16_t *pattern = (uint16_t *)font->data + (c * (font->height + 1));
+                for (int y = 0; y < font->height; y++)
+                    output[y] = pattern[y];
+            }
+        }
+        if(c >= font->chars){
+            glyph_width = font->width / 2;
+        }else{
+            uint8_t *current = (uint8_t *)font->data + (c * (font->height * 2 + 2)) + font->height * 2;
+            glyph_width = *current;
+        }
+    }
+    else // Proportional
+    {
+        if(c > 254){
+            return glyph_width;
+        } 
         // Based on code by Boris Lovosevic (https://github.com/loboris)
         int charCode, adjYOffset, width, height, xOffset, xDelta;
         const uint8_t *data = font->data;
@@ -364,6 +390,50 @@ static size_t get_glyph(uint32_t *output, const rg_font_t *font, int points, int
     return glyph_width;
 }
 
+// 函数用于解码UTF-8字符并返回Unicode码点  
+// 注意：这个函数假设输入是有效的UTF-8编码  
+uint32_t decode_utf8_char(const char** str) {  
+    uint8_t c = (uint8_t)**str;  
+  
+    (*str)++;
+    // 处理ASCII字符  
+    if (c < 0x80) {  
+        // (*str)++; // 移动到下一个字符  
+        return c;  
+    }  
+  
+    // 多字节字符处理  
+    uint32_t codepoint = 0;  
+    int bytes_needed = 0;  
+  
+    if ((c >> 5) == 0b110) {  
+        bytes_needed = 1;  
+    } else if ((c >> 4) == 0b1110) {  
+        bytes_needed = 2;  
+    } else if ((c >> 3) == 0b11110) {  
+        bytes_needed = 3;  
+    } else {  
+        // 无效的UTF-8起始字节  
+        return 0x20; // 替换字符  
+    }  
+  
+    // 读取并组合字节  
+    codepoint = c & ((1 << (6 - bytes_needed)) - 1);  
+    // (*str)++;  
+  
+    for (int i = 0; i < bytes_needed; i++) {  
+        c = (uint8_t)**str;  
+        if ((c >> 6) != 0b10) {  
+            // 无效的UTF-8后续字节  
+            return 0x20; // 替换字符  0xFFFD
+        }  
+        codepoint = (codepoint << 6) | (c & 0x3F);  
+        (*str)++;  
+    }  
+  
+    return codepoint;  
+}  
+
 rg_rect_t rg_gui_draw_text(int x_pos, int y_pos, int width, const char *text, // const rg_font_t *font,
                            rg_color_t color_fg, rg_color_t color_bg, uint32_t flags)
 {
@@ -383,8 +453,11 @@ rg_rect_t rg_gui_draw_text(int x_pos, int y_pos, int width, const char *text, //
         int line_width = padding * 2;
         for (const char *ptr = text; *ptr;)
         {
-            int chr = *ptr++;
-            line_width += monospace ?: get_glyph(NULL, font, font_height, chr);
+            //int chr = *ptr++;
+            ///line_width += monospace ?: get_glyph(NULL, font, font_height, chr);
+            uint8_t chr = *ptr;
+            uint32_t codepoint = decode_utf8_char(&ptr);
+            line_width += monospace ?: get_glyph(NULL, font, font_height, codepoint);
 
             if (chr == '\n' || *ptr == 0)
             {
@@ -417,8 +490,11 @@ rg_rect_t rg_gui_draw_text(int x_pos, int y_pos, int width, const char *text, //
             const char *line = ptr;
             while (x_offset < draw_width && *line && *line != '\n')
             {
-                int chr = *line++;
-                int width = monospace ?: get_glyph(NULL, font, font_height, chr);
+                //int chr = *line++;
+                ///int width = monospace ?: get_glyph(NULL, font, font_height, chr);
+                uint8_t chr = *line;
+                uint32_t codepoint = decode_utf8_char(&line);
+                int width = monospace ?: get_glyph(NULL, font, font_height, codepoint);
                 if (draw_width - x_offset < width) // Do not truncate glyphs
                     break;
                 x_offset += width;
@@ -437,13 +513,17 @@ rg_rect_t rg_gui_draw_text(int x_pos, int y_pos, int width, const char *text, //
         while (x_offset < draw_width)
         {
             uint32_t bitmap[32] = {0};
-            int glyph_width = get_glyph(bitmap, font, font_height, *ptr++);
-            int width = monospace ?: glyph_width;
+           // int glyph_width = get_glyph(bitmap, font, font_height, *ptr++);
+           char *start = ptr;
+           uint32_t codepoint = decode_utf8_char(&ptr);
+           int glyph_width = get_glyph(bitmap, font, font_height, codepoint); 
+           int width = monospace ?: glyph_width;
 
             if (draw_width - x_offset < width) // Do not truncate glyphs
             {
                 if (flags & RG_TEXT_MULTILINE)
-                    ptr--;
+                   // ptr--;
+                   ptr = start;
                 break;
             }
 
@@ -1358,7 +1438,7 @@ static rg_gui_event_t theme_cb(rg_gui_option_t *option, rg_gui_event_t event)
 {
     if (event == RG_DIALOG_ENTER)
     {
-        char *path = rg_gui_file_picker("Theme", RG_BASE_PATH_THEMES, NULL, true);
+        char *path = rg_gui_file_picker(_("Theme"), RG_BASE_PATH_THEMES, NULL, true);
         if (path != NULL)
         {
             const char *theme = strlen(path) > 0 ? rg_basename(path) : NULL;
@@ -1368,7 +1448,7 @@ static rg_gui_event_t theme_cb(rg_gui_option_t *option, rg_gui_event_t event)
         }
     }
 
-    strcpy(option->value, rg_gui_get_theme_name() ?: "Default");
+    strcpy(option->value, rg_gui_get_theme_name() ?: _("Default"));
     return RG_DIALOG_VOID;
 }
 
