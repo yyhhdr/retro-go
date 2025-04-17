@@ -10,6 +10,7 @@ typedef enum
     RG_LANG_EN = 0,
     RG_LANG_FR,
     RG_LANG_SC,
+    RG_LANG_JP,
 
     RG_LANG_MAX
 } rg_language_t;
