@@ -111,8 +111,8 @@ void rg_gui_init(void)
     gui.screen_safezone = 0;
     #endif
     gui.draw_buffer = get_draw_buffer(gui.screen_width, 18, C_BLACK);
-    rg_gui_set_language_id(rg_settings_get_number(NS_GLOBAL, SETTING_LANGUAGE, RG_LANG_EN));
-    rg_gui_set_font(rg_settings_get_number(NS_GLOBAL, SETTING_FONTTYPE, RG_FONT_VERA_12));
+    rg_gui_set_language_id(rg_settings_get_number(NS_GLOBAL, SETTING_LANGUAGE, RG_LANG_SC));        //设置默认语言为中文
+    rg_gui_set_font(rg_settings_get_number(NS_GLOBAL, SETTING_FONTTYPE, RG_FONT_FUSIONPIXEL_12));   //设置中文字体为默认字体
     rg_gui_set_theme(rg_settings_get_string(NS_GLOBAL, SETTING_THEME, NULL));
     gui.show_clock = rg_settings_get_boolean(NS_GLOBAL, SETTING_CLOCK, false);
     gui.initialized = true;
@@ -355,7 +355,7 @@ static size_t get_glyph(uint32_t *output, const rg_font_t *font, int points, uin
         // If the glyph is not found, we fallback to the basic font which has most glyphs.
         // It will be ugly, but at least the letter won't be missing...
         if (charCode != c)
-            return get_glyph(output, &font_basic8x8, RG_MAX(8, points - 2), c);
+            return get_glyph(output, &font_FusionPixel12, RG_MAX(8, points - 2), c);    //设置字库为中文字库，确保可以显示。
 
         glyph_width = RG_MAX(width, xDelta);
         if (output)
