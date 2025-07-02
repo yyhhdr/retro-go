@@ -345,7 +345,7 @@ void gui_scroll_list(tab_t *tab, scroll_whence_t mode, int arg)
     if (list->length && list->items[list->cursor].arg)
         sprintf(tab->status[0].left, "%d / %d", (list->cursor + 1) % 10000, list->length % 10000);
     else
-        strcpy(tab->status[0].left, "List empty");
+        strcpy(tab->status[0].left, _("List empty"));
 
     gui_event(TAB_SCROLL, tab);
 
