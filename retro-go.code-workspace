@@ -1,6 +1,10 @@
 {
 	"folders": [
 		{
+			"path": ".",
+			"name": "root"
+		},
+		{
 			"path": "components"
 		},
 		{
@@ -23,10 +27,6 @@
 		},
 		{
 			"path": "tools"
-		},
-		{
-			"path": ".",
-			"name": "root"
 		}
 	],
 	"settings": {

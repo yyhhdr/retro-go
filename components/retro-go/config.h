@@ -26,6 +26,8 @@
 #include "targets/rachel-esp32/config.h"
 #elif defined(RG_TARGET_C19)
 #include "targets/c19/config.h"
+#elif defined(RG_TARGET_GBMINI)
+#include "targets/gbmini/config.h"
 #else
 #warning "No target defined. Defaulting to ODROID-GO."
 #include "targets/odroid-go/config.h"
